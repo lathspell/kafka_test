@@ -8,7 +8,7 @@ topic::
 Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
 Nachrichtenkanal in den von mehren Parteien geschrieben und gelesen werden
 kann.
-
++
 Der Server löscht alte Nachrichten nach einer bestimmten Zeit.
 
 message::
@@ -22,11 +22,11 @@ Partitionen können auf meherere Server aufgeteilt werden um damit ein
 Redundanzkonzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
 man angeben, in wievielen Partitions eines Topics eine Nachricht gespeichert
 sein muss damit sie als angenommen gilt.
-
++
 Partitionen können auch benutzt werden falls auf einem einzigen Server nicht
 genügend Platz für alle Nachrichten eines Topics bei der gewünschten
 Vorhaltezeit vorhanden wäre.
-
++
 Da mancher Producer Nachrichten in nur einer Partition eines Topics speichern
 wollen und andere Producer ihre Nachrichten im selben Topic aber in mehreren
 Partitionen haben wollen, können die Partitionen unterschiedlich groß werden.
