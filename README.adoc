@@ -93,6 +93,7 @@ kafka-console-consumer::
 | --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
 | --property print.key=false    | Anzeige der Keys einer Nachricht
 | --property print.value=true   | Anzeige der Werte einer Nachricht
+| --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer | Auswahl eines alternativen Deserialisierer
 |===
 
 kafkacat::
@@ -113,3 +114,4 @@ Links
   Builder, Serializer/Deserializer gebaut werden können, kann man z.B. Apache
   Avra [http://avro.apache.org/] benutzen.
 
+* Demo eines Kafka Stream Filters [https://github.com/apache/kafka/blob/2.4/streams/examples/src/main/java/org/apache/kafka/streams/examples/wordcount/WordCountDemo.java]
