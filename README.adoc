@@ -1,8 +1,6 @@
-Apache Kafka Examples
-=====================
+= Apache Kafka =
 
-Glossary
---------
+== Glossary ==
 
 topic::
 Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
@@ -15,6 +13,9 @@ message::
 Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id die benutzt wird
 um für die Nachricht in eine von mehreren möglichen Partitions zu bestimmen und
 der Value ist der eigentliche Nachrichteninhalt.
++
+Es können mehrere Nachrichten zum selben Key produziert werden. Die Consumer sollen
+dann Daten mit älteren Ids überschreiben.
 
 partition::
 Ein Topic kann in eine oder meherere Partitionen aufgeteilt werden. Die
@@ -48,35 +49,62 @@ Mehrere Consumer können zu einer Gruppe zusammengefasst werden. Vom Kafka
 Server wird sicher gestellt, dass jede Nachricht nur zu genau einem Consumer
 der Gruppe gelangt.
 
-Setup
------
+== Setup ==
 
     docker-compose up
 
-CLI Tests
----------
+== Einstellungen ==
 
-Topics::
-```
+cleanup.policy::
+Wird ein Topic mit der Option "cleanup.policy=compact" erstellt so wird für
+jeden Key innerhalb eines Topics nur der neueste Eintrag behalten. Andernfalls
+werden auch ältere Versionen vorgehalten damit ein Client z.B. die ganze
+Historie des Objekts nachverfolgen kann.
++
+Standard mäßig gilt aber eine Retention Policy die alle Daten nach 7 Tagen
+löscht - also auch wenn seit dem keine weitere Aktualisierung für einen Key
+kam.
+
+== CLI Tools ==
+
+kafka-topics::
++
     kafka-topics --bootstrap-server localhost:9092 --create --topic=test --replication-factor=1 --partitions=1
     kafka-topics --bootstrap-server localhost:9092 --list
     kafka-topics --bootstrap-server localhost:9092 --describe --topic=test
     kafka-topics --bootstrap-server localhost:9092 --delete --topic=test
-```
 
-Messages::
-```
-    kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
-    kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test [--from-beginning]
-```
-
-Connectors::
-```
+connect-standalone::
++
     connect-standalone \
         config/connect-standalone.properties \
         config/connect-file-source.properties \
         config/connect-file-sink.properties
-```
+
+kafka-console-producer::
++
+    kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
+
+kafka-console-consumer::
++
+    kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test
++
+|===
+| --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
+| --property print.key=false    | Anzeige der Keys einer Nachricht
+| --property print.value=true   | Anzeige der Werte einer Nachricht
+|===
+
+kafkacat::
+
+Feines Universaltool
++
+    kafkacat  -b localhost:9092 -C -t streams-plaintext-output -J
++
+|===
+| -C / -P       | Consumer / Producer u.a.
+| -J            | JSON Formattierung
+|===
 
 Links
 -----
