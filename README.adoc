@@ -1,0 +1,84 @@
+Apache Kafka Examples
+=====================
+
+Glossary
+--------
+
+topic::
+Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
+Nachrichtenkanal in den von mehren Parteien geschrieben und gelesen werden
+kann.
+
+Der Server löscht alte Nachrichten nach einer bestimmten Zeit.
+
+message::
+Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id die benutzt wird
+um für die Nachricht in eine von mehreren möglichen Partitions zu bestimmen und
+der Value ist der eigentliche Nachrichteninhalt.
+
+partition::
+Ein Topic kann in eine oder meherere Partitionen aufgeteilt werden. Die
+Partitionen können auf meherere Server aufgeteilt werden um damit ein
+Redundanzkonzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
+man angeben, in wievielen Partitions eines Topics eine Nachricht gespeichert
+sein muss damit sie als angenommen gilt.
+
+Partitionen können auch benutzt werden falls auf einem einzigen Server nicht
+genügend Platz für alle Nachrichten eines Topics bei der gewünschten
+Vorhaltezeit vorhanden wäre.
+
+Da mancher Producer Nachrichten in nur einer Partition eines Topics speichern
+wollen und andere Producer ihre Nachrichten im selben Topic aber in mehreren
+Partitionen haben wollen, können die Partitionen unterschiedlich groß werden.
+Ein Consumer muss sich daher für jede Partition merken, bis zu welchem ein
+"offset" er dort Nachrichten abgeholt hat.
+
+producer::
+Schreibt in ein Topic. Genauergesagt "appends a record", d.h. keine
+nachträgliche Veränderung möglich.  Der Producer kennt die Consumer nicht und
+hat keinen Einfluss darauf, wer die Nachrichten letztendlich liest.
+
+consumer::
+Liest aus einem Topic. Üblicherweise nur neue Nachrichten, auf Wunsch aber auch
+alle noch vorhandenen älteren.  Die gelesenen Nachrichten verbleiben auf dem
+Kafka Server, andere Consumer können sie also auch noch abholen.
+
+consumer group::
+Mehrere Consumer können zu einer Gruppe zusammengefasst werden. Vom Kafka
+Server wird sicher gestellt, dass jede Nachricht nur zu genau einem Consumer
+der Gruppe gelangt.
+
+Setup
+-----
+
+    docker-compose up
+
+CLI Tests
+---------
+
+Topics::
+   
+    kafka-topics --bootstrap-server localhost:9092 --create --topic=test --replication-factor=1 --partitions=1
+    kafka-topics --bootstrap-server localhost:9092 --list
+    kafka-topics --bootstrap-server localhost:9092 --describe --topic=test
+    kafka-topics --bootstrap-server localhost:9092 --delete --topic=test
+
+Messages::
+
+    kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
+    kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test [--from-beginning]
+
+Connectors::
+
+    connect-standalone \
+        config/connect-standalone.properties \
+        config/connect-file-source.properties \
+        config/connect-file-sink.properties
+
+Links
+-----
+
+* Zum einfachen generieren von Schemata aus denen dann Data Transfer Objects,
+  Builder, Serializer/Deserializer gebaut werden können, kann man z.B. Apache
+  Avra [http://avro.apache.org/] benutzen.
+
