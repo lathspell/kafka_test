@@ -8,6 +8,7 @@ services:
       - "2181:2181"
 
   kafka:
+    container_name: kafka
     image: confluentinc/cp-kafka
     ports:
       - "9092:9092"
