@@ -4,13 +4,13 @@
 
 topic::
 Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
-Nachrichtenkanal in den von mehren Parteien geschrieben und gelesen werden
+Nachrichtenkanal, in den von mehren Parteien geschrieben und gelesen werden
 kann.
 +
 Der Server löscht alte Nachrichten nach einer bestimmten Zeit.
 
 message::
-Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id die benutzt wird
+Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id, die benutzt wird,
 um für die Nachricht in eine von mehreren möglichen Partitions zu bestimmen und
 der Value ist der eigentliche Nachrichteninhalt.
 +
@@ -18,13 +18,13 @@ Es können mehrere Nachrichten zum selben Key produziert werden. Die Consumer so
 dann Daten mit älteren Ids überschreiben.
 
 partition::
-Ein Topic kann in eine oder meherere Partitionen aufgeteilt werden. Die
-Partitionen können auf meherere Server aufgeteilt werden um damit ein
-Redundanzkonzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
-man angeben, in wievielen Partitions eines Topics eine Nachricht gespeichert
-sein muss damit sie als angenommen gilt.
+Ein Topic kann in eine oder mehrere Partitionen aufgeteilt werden. Die
+Partitionen können auf mehrere Server aufgeteilt werden, um damit ein
+Redundanz-Konzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
+man angeben, in wie vielen Partitions eines Topics eine Nachricht gespeichert
+sein muss, damit sie als angenommen gilt.
 +
-Partitionen können auch benutzt werden falls auf einem einzigen Server nicht
+Partitionen können auch benutzt werden, falls auf einem einzigen Server nicht
 genügend Platz für alle Nachrichten eines Topics bei der gewünschten
 Vorhaltezeit vorhanden wäre.
 +
@@ -33,9 +33,17 @@ wollen und andere Producer ihre Nachrichten im selben Topic aber in mehreren
 Partitionen haben wollen, können die Partitionen unterschiedlich groß werden.
 Ein Consumer muss sich daher für jede Partition merken, bis zu welchem ein
 "offset" er dort Nachrichten abgeholt hat.
++
+Nachrichten werden auf Basis eines Hash-Werts über den "Keys" in Partitions verteilt.
+Nur innerhalb einer Partition wird garantiert, dass die konsumierte Reihenfolge dieselbe ist,
+in der die Nachrichten auch im Kafka eintrafen!
+Hat man mehr Partitions als Consumer in einer Consumer-Group so bekommt jeder Consumer
+einen möglichst gleichen Anteil an Partitions.
+Hat man mahr Consumer in einer Consumer-Group als man Partitions existieren, so bleiben einige
+Consumer idle.
 
 producer::
-Schreibt in ein Topic. Genauergesagt "appends a record", d.h. keine
+Schreibt in ein Topic. Genauer gesagt "appends a record", d.h. keine
 nachträgliche Veränderung möglich.  Der Producer kennt die Consumer nicht und
 hat keinen Einfluss darauf, wer die Nachrichten letztendlich liest.
 
@@ -46,7 +54,7 @@ Kafka Server, andere Consumer können sie also auch noch abholen.
 
 consumer group::
 Mehrere Consumer können zu einer Gruppe zusammengefasst werden. Vom Kafka
-Server wird sicher gestellt, dass jede Nachricht nur zu genau einem Consumer
+Server wird sichergestellt, dass jede Nachricht nur zu genau einem Consumer
 der Gruppe gelangt.
 
 == Setup ==
@@ -93,7 +101,7 @@ kafka-console-consumer::
 | --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
 | --property print.key=false    | Anzeige der Keys einer Nachricht
 | --property print.value=true   | Anzeige der Werte einer Nachricht
-| --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer | Auswahl eines alternativen Deserialisierer
+| --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer | Auswahl eines alternativen Deserialisierers
 |===
 
 kafkacat::
@@ -104,14 +112,13 @@ Feines Universaltool
 +
 |===
 | -C / -P       | Consumer / Producer u.a.
-| -J            | JSON Formattierung
+| -J            | JSON Formatierung
 |===
 
-Links
------
+== Links ==
 
 * Zum einfachen generieren von Schemata aus denen dann Data Transfer Objects,
-  Builder, Serializer/Deserializer gebaut werden können, kann man z.B. Apache
-  Avra [http://avro.apache.org/] benutzen.
+Builder, Serializer/Deserializer gebaut werden können, kann man z.B. Apache
+Avro [http://avro.apache.org/] benutzen.
 
 * Demo eines Kafka Stream Filters [https://github.com/apache/kafka/blob/2.4/streams/examples/src/main/java/org/apache/kafka/streams/examples/wordcount/WordCountDemo.java]
