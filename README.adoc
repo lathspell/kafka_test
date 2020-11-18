@@ -73,6 +73,10 @@ Standard mäßig gilt aber eine Retention Policy die alle Daten nach 7 Tagen
 löscht - also auch wenn seit dem keine weitere Aktualisierung für einen Key
 kam.
 
+max.in.flight.requests.per.connection::
+Sollte man im Producer auf "1" stellen, wenn man verhindern will, dass durch Paketverluste und Retries Nachrichten
+eines Produces doch mal in der falschen Reihenfolge beim Kafka Server ankommen.
+
 == CLI Tools ==
 
 kafka-topics::

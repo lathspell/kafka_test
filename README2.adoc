@@ -1,0 +1,153 @@
+
+
+=== Kafka Grundlagen ===
+
+Über Kafka werden *Messages* in verschiedenen *Topics* ausgetauscht.
+
+Die Topics können in verschiedene *Partitions* eingeteilt sein welche zur besseren horizontalen Skalierung
+auf verschiedenen Servern liegen. Partitions können zur Erhöhung der Redundanz repliziert werden, aber
+das ist eine Einstellung, die man beim Erstellen des Topics vornimmt und die danach transparent für
+die Nutzer ist.
+
+*Producer* schreiben Nachrichten in ein Topic..
+
+*Consumer* lesen Nachrichten.
+
+*Consumer Groups* werden benutzt, wenn ein Consumer in mehreren Prozessen gleichzeitig lesen möchte.
+Kafka stellt sicher, dass jede Message nur an genau einen Consumer einer solchen Gruppe geht.
+
+*Messages* bestehen aus einem Key, einem Value und optional aus einer Liste von Headern.
+Die Vorhaltezeit kann pro Topic konfiguriert werden.
+
+*Keys* sind für Kafka Strings mit beliebigem Inhalt oder auch NULL.
+Sie können aber zusammen mit den richtigen Konfigurationsparametern dazu benutzt werden dass
+Kafka immer nur eine Message pro Key behält, d.h. alte Messages für diesen Key löscht.
+
+*Values* sind aus Sicht von Kafka reine Binär-Blobs, deren Struktur es nicht kennt.
+
+*Header* sind optionale Key-Value-Paare wie z.B. IPs, Hostnamen oder weitere Zeitstempel, die
+zwecks Routing, Processing o.ä. an eine Message gehängt werden können aber nicht zum
+"Business Object" gehören.
+
+Links:
+
+* https://www.rheindata.com/apache-kafka-avro-und-schema-registry - Grundlagen
+* https://www.confluent.io/blog/apache-kafka-spring-boot-application/ - SpringBoot Kafka
+
+=== Avro Grundlagen ===
+
+Avro ist ein Binär-Serialisierung Format ähnlich Protobuf.
+
+Aus dem Schema wird eine Schema-Id und Id-Nummern für jedes Feld berechnet.
+In der Binär-Representation werden nur die Feld-Ids und serialisierten Daten gespeichert.
+Die Reihenfolge der Felder im Binary ist daher egal (nützlich für bestimmte Datenbanken wie Hadoop).
+
+Sowohl der Producer als auch der Consumer brauchen zwingend das Schema!
+
+Von der Firma Confluent gibt es einen Schema-Registry Server und eine gepatchte Kafka Variante
+welche die Schema-Id zusammen mit den Messages speichert und prüft ob das dazu passende Schema
+in der Registry bekannt ist und sonst ggf. die Message ablehnt.
+
+Schema Versionen können in der Registry gepflegt werden, sind aber aus Sicht von Kafka komplett
+beliebige Schemas, weil in Kafka ja nur die Schema-Id mit einem Binärblob gespeichert wird.
+
+Es gibt ein Gradle Plugin das mithilfe der Avro Library aus Avro Schemas (`*.avsc`) entsprechende
+Java Klassen erzeugt.
+
+Abruf eines bestimmten Schemas:
+
+    http https://kafka-schema-registry:9081/schemas/ids/10
+
+Implementierungen:
+
+* kafka-avro-serializer - Kafka Adapter von Confluent für Apache Avro Serializer - https://github.com/confluentinc/schema-registry
+* avro - Avro Serializer - http://avro.apache.org/
+
+* avro4k-kafka-serializer - Kafka Adapter für avro4k - https://github.com/thake/avro4k-kafka-serializer
+* avro4k - Avro Serializer for Kotlin (Portierung von avro4s) - https://github.com/sksamuel/avro4k
+* avro4s - Avro Serializer for Scala
+
+Classloader Probleme:
+
+Kafka/Avro benutzt einen eigenen Classloader, was nicht kompatibel mit SpringBoot Devtools ist. Die mit dem Avro
+Classloader erzeugte "Foo" Klasse kann nicht in dieselbe Klasse vom SpringBoot Devtools Classloader
+gecastet werden.
+
+Für avro4k scheint es einen Patch gegeben zu haben.
+
+* Bug in Avro - https://issues.apache.org/jira/browse/AVRO-1425
+* 118 weitere Tickets mit dem Begriff "Classloader" in Avro+Kafka - https://issues.apache.org/jira/browse/AVRO-1451?jql=project%20in%20(AVRO%2C%20KAFKA)%20AND%20text%20~%20classloader
+* SpringBoot will es nicht fixen und verweist auf Avro - https://github.com/spring-projects/spring-boot/issues/14622
+
+Links:
+
+* https://avro.apache.org/docs/current/spec.html#schema_primitive - AVRO Spec
+* https://github.com/davidmc24/gradle-avro-plugin - AVRO Gradle Plugin
+* https://docs.confluent.io/current/schema-registry/schema_registry_tutorial.html - Kafka Avro Serializer
+* https://docs.confluent.io/current/schema-registry/connect.html - Kafka Avro Konfiguration der Zugangsdaten
+
+=== Kafka Tools ===
+
+kafka-topics - Verwalten von Topics:
+
+    kafka-topics --bootstrap-server localhost:9192 --create   --topic=test --replication-factor=1 --partitions=1
+    kafka-topics --bootstrap-server localhost:9192 --list
+    kafka-topics --bootstrap-server localhost:9192 --describe --topic=test
+    kafka-topics --bootstrap-server localhost:9192 --delete   --topic=test
+
+kafka-consumer-groups - Verwalten von Consumer Groups (z.B. Resetten von Positionen)
+
+    ./kafka-cli/kafka-consumer-groups-int \
+        --reset-offsets --to-earliest --topic=foo --dry-run
+
+    ./kafka-cli/kafka-consumer-groups-int \
+        --offsets --verbose
+
+    Die Scripte in kafka-cli/ sind nicht im GIT weil sie Zugangsdaten enthalten. Das o.g. Script sieht
+    wie folgt aus:
+
+        kafka-consumer-groups \
+          --command-config=kafka-cli/kafka-int.properties \
+          --bootstrap-server=kafka-int:9093 \
+          --group=foo-cg1
+
+        kafka-cli/kafka-int.properties
+          security.protocol=SSL
+          ssl.truststore.location=config/int-kafka-truststore.p12
+          ssl.truststore.password=xxx
+          ssl.keystore.location=config/int-kafka-keystore.p12
+          ssl.keystore.password=xxx
+
+kafkacat - Nachrichten lesen und schreiben:
+
+    # Anzeige aller Messages im Topic "foo-test" als JSON
+    kafkacat -b localhost:9192 -C -t foo-test -J
+
+    # Erzeugen einer Message mit Key "64" und Message '{a:41}' auf Queue "foo-test"
+    echo '64:{ "a": 41 }' | kafkacat -P -b localhost:9192 -t foo-test -K:
+    cat beleg1.yml | yq -r - | kafkacat -P -b localhost:9192 -t foo-test
+
+|===
+| -b            | Bootstrap broker(s)
+| -C / -P       | Consumer / Producer u.a.
+| -t            | Topic
+| -K delimiter  | Trennzeichen für den Message Key
+| -J            | JSON Formatierung
+|===
+
+    # Zugriff auf Kafka mit SSL Client-Zertifikat (config/ und kafka-cli/ sind nicht in GIT!)
+    kafkacat -v \
+      -b kafka-int:9093 \
+      -X security.protocol=SSL \
+      -X ssl.ca.location=kafka-cli/kafka-int_root_ca.pem \
+      -X ssl.keystore.location=config/int-kafka-keystore.p12 \
+      -X ssl.keystore.password=xxx \
+      -s avro -r 'https://kafka-schema-registry:9081' \
+      -C -t foo
+
+=== Caveats ===
+
+* Die Warnung "org.apache.kafka.clients.producer.ProducerConfig - The configuration 'auto.register.schema'
+was supplied but isn't a known config." kommt vermutlich, weil die Option nicht vom offiziellen Apache
+Kafka Client kommt, sondern für den Confluent Avro Serializer ist und nur der Einheitlichkeit halber
+auch bei den Kafka Optionen angegeben wird.
