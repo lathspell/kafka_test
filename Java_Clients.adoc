@@ -1,0 +1,6 @@
+= Anbindung von Kotlin und Java =
+
+== Links ==
+
+* https://www.confluent.io/blog/apache-kafka-spring-boot-application/ - SpringBoot Kafka
+* Demo eines Kafka Stream Filters [https://github.com/apache/kafka/blob/2.4/streams/examples/src/main/java/org/apache/kafka/streams/examples/wordcount/WordCountDemo.java]

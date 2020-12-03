@@ -1,128 +1,20 @@
-= Apache Kafka =
+= Kafka & Avro
 
-== Glossary ==
+== Grundwissen ==
 
-topic::
-Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
-Nachrichtenkanal, in den von mehren Parteien geschrieben und gelesen werden
-kann.
-+
-Der Server löscht alte Nachrichten nach einer bestimmten Zeit.
+* link:Kafka_Fundamentals.adoc[Kafka Fundamentals]
+* link:Avro_Fundamentals.adoc[Avro Fundamentals]
 
-message::
-Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id, die benutzt wird,
-um für die Nachricht in eine von mehreren möglichen Partitions zu bestimmen und
-der Value ist der eigentliche Nachrichteninhalt.
-+
-Es können mehrere Nachrichten zum selben Key produziert werden. Die Consumer sollen
-dann Daten mit älteren Ids überschreiben.
+* link:CLI.adoc[CLI]
+* link:Java_Clients.adoc[Kotlin und Java Clients]
 
-partition::
-Ein Topic kann in eine oder mehrere Partitionen aufgeteilt werden. Die
-Partitionen können auf mehrere Server aufgeteilt werden, um damit ein
-Redundanz-Konzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
-man angeben, in wie vielen Partitions eines Topics eine Nachricht gespeichert
-sein muss, damit sie als angenommen gilt.
-+
-Partitionen können auch benutzt werden, falls auf einem einzigen Server nicht
-genügend Platz für alle Nachrichten eines Topics bei der gewünschten
-Vorhaltezeit vorhanden wäre.
-+
-Da mancher Producer Nachrichten in nur einer Partition eines Topics speichern
-wollen und andere Producer ihre Nachrichten im selben Topic aber in mehreren
-Partitionen haben wollen, können die Partitionen unterschiedlich groß werden.
-Ein Consumer muss sich daher für jede Partition merken, bis zu welchem ein
-"offset" er dort Nachrichten abgeholt hat.
-+
-Nachrichten werden auf Basis eines Hash-Werts über den "Keys" in Partitions verteilt.
-Nur innerhalb einer Partition wird garantiert, dass die konsumierte Reihenfolge dieselbe ist,
-in der die Nachrichten auch im Kafka eintrafen!
-Hat man mehr Partitions als Consumer in einer Consumer-Group so bekommt jeder Consumer
-einen möglichst gleichen Anteil an Partitions.
-Hat man mahr Consumer in einer Consumer-Group als man Partitions existieren, so bleiben einige
-Consumer idle.
+== Lokales Tests ==
 
-producer::
-Schreibt in ein Topic. Genauer gesagt "appends a record", d.h. keine
-nachträgliche Veränderung möglich.  Der Producer kennt die Consumer nicht und
-hat keinen Einfluss darauf, wer die Nachrichten letztendlich liest.
+Es gibt mehrere Setups:
 
-consumer::
-Liest aus einem Topic. Üblicherweise nur neue Nachrichten, auf Wunsch aber auch
-alle noch vorhandenen älteren.  Die gelesenen Nachrichten verbleiben auf dem
-Kafka Server, andere Consumer können sie also auch noch abholen.
+* docker-compose.yml enthält nur Kafka
+* docker-compose.full.yml enthält neben Kafka auch noch eine Avro Schema Registry
 
-consumer group::
-Mehrere Consumer können zu einer Gruppe zusammengefasst werden. Vom Kafka
-Server wird sichergestellt, dass jede Nachricht nur zu genau einem Consumer
-der Gruppe gelangt.
+Start von letzterer mit `docker-compose -f docker-compose.full.yml up`.
 
-== Setup ==
 
-    docker-compose up
-
-== Einstellungen ==
-
-cleanup.policy::
-Wird ein Topic mit der Option "cleanup.policy=compact" erstellt so wird für
-jeden Key innerhalb eines Topics nur der neueste Eintrag behalten. Andernfalls
-werden auch ältere Versionen vorgehalten damit ein Client z.B. die ganze
-Historie des Objekts nachverfolgen kann.
-+
-Standard mäßig gilt aber eine Retention Policy die alle Daten nach 7 Tagen
-löscht - also auch wenn seit dem keine weitere Aktualisierung für einen Key
-kam.
-
-max.in.flight.requests.per.connection::
-Sollte man im Producer auf "1" stellen, wenn man verhindern will, dass durch Paketverluste und Retries Nachrichten
-eines Produces doch mal in der falschen Reihenfolge beim Kafka Server ankommen.
-
-== CLI Tools ==
-
-kafka-topics::
-+
-    kafka-topics --bootstrap-server localhost:9092 --create --topic=test --replication-factor=1 --partitions=1
-    kafka-topics --bootstrap-server localhost:9092 --list
-    kafka-topics --bootstrap-server localhost:9092 --describe --topic=test
-    kafka-topics --bootstrap-server localhost:9092 --delete --topic=test
-
-connect-standalone::
-+
-    connect-standalone \
-        config/connect-standalone.properties \
-        config/connect-file-source.properties \
-        config/connect-file-sink.properties
-
-kafka-console-producer::
-+
-    kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
-
-kafka-console-consumer::
-+
-    kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test
-+
-|===
-| --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
-| --property print.key=false    | Anzeige der Keys einer Nachricht
-| --property print.value=true   | Anzeige der Werte einer Nachricht
-| --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer | Auswahl eines alternativen Deserialisierers
-|===
-
-kafkacat::
-
-Feines Universaltool
-+
-    kafkacat  -b localhost:9092 -C -t streams-plaintext-output -J
-+
-|===
-| -C / -P       | Consumer / Producer u.a.
-| -J            | JSON Formatierung
-|===
-
-== Links ==
-
-* Zum einfachen generieren von Schemata aus denen dann Data Transfer Objects,
-Builder, Serializer/Deserializer gebaut werden können, kann man z.B. Apache
-Avro [http://avro.apache.org/] benutzen.
-
-* Demo eines Kafka Stream Filters [https://github.com/apache/kafka/blob/2.4/streams/examples/src/main/java/org/apache/kafka/streams/examples/wordcount/WordCountDemo.java]

@@ -1,0 +1,59 @@
+
+=== Avro Grundlagen ===
+
+Avro ist ein Binär-Serialisierung Format ähnlich Protobuf.
+
+Aus dem Schema wird eine Schema-Id und Id-Nummern für jedes Feld berechnet.
+In der Binär-Representation werden nur die Feld-Ids und serialisierten Daten gespeichert.
+Die Reihenfolge der Felder im Binary ist daher egal (nützlich für bestimmte Datenbanken wie Hadoop).
+
+Sowohl der Producer als auch der Consumer brauchen zwingend das Schema!
+
+Von der Firma Confluent gibt es einen Schema-Registry Server und eine gepatchte Kafka Variante,
+welche die Schema-Id zusammen mit den Messages speichert und prüft, ob das dazu passende Schema
+in der Registry bekannt ist und sonst ggf. die Message ablehnt.
+
+Schema Versionen können in der Registry gepflegt werden, sind aber aus Sicht von Kafka komplett
+beliebige Schemas, weil in Kafka ja nur die Schema-Id mit einem Binär-Blob gespeichert wird.
+
+Es gibt ein Gradle Plugin das mithilfe der Avro Library aus Avro Schemas (`*.avsc`) entsprechende
+Java Klassen erzeugt.
+
+Abruf eines bestimmten Schemas:
+
+    http https://kafka-schema-registry:9081/schemas/ids/10
+
+Implementierungen:
+
+* kafka-avro-serializer - Kafka Adapter von Confluent für Apache Avro Serializer - https://github.com/confluentinc/schema-registry
+* avro - Avro Serializer - http://avro.apache.org/
+
+* avro4k-kafka-serializer - Kafka Adapter für avro4k - https://github.com/thake/avro4k-kafka-serializer
+* avro4k - Avro Serializer for Kotlin (Portierung von avro4s) - https://github.com/sksamuel/avro4k
+* avro4s - Avro Serializer for Scala
+
+Classloader Probleme:
+
+Kafka/Avro benutzt einen eigenen Classloader, was nicht kompatibel mit SpringBoot Devtools ist. Die mit dem Avro
+Classloader erzeugte "Foo" Klasse kann nicht in dieselbe Klasse vom SpringBoot Devtools Classloader
+gecastet werden.
+
+Für avro4k scheint es einen Patch gegeben zu haben.
+
+* Bug in Avro - https://issues.apache.org/jira/browse/AVRO-1425
+* 118 weitere Tickets mit dem Begriff "Classloader" in Avro+Kafka - https://issues.apache.org/jira/browse/AVRO-1451?jql=project%20in%20(AVRO%2C%20KAFKA)%20AND%20text%20~%20classloader
+* SpringBoot will es nicht fixen und verweist auf Avro - https://github.com/spring-projects/spring-boot/issues/14622
+
+Links:
+
+* https://avro.apache.org/docs/current/spec.html#schema_primitive - AVRO Spec
+* https://github.com/davidmc24/gradle-avro-plugin - AVRO Gradle Plugin
+* https://docs.confluent.io/current/schema-registry/schema_registry_tutorial.html - Kafka Avro Serializer
+* https://docs.confluent.io/current/schema-registry/connect.html - Kafka Avro Konfiguration der Zugangsdaten
+
+=== Caveats ===
+
+* Die Warnung "org.apache.kafka.clients.producer.ProducerConfig - The configuration 'auto.register.schema'
+was supplied but isn't a known config." kommt vermutlich, weil die Option nicht vom offiziellen Apache
+Kafka Client kommt, sondern für den Confluent Avro Serializer ist und nur der Einheitlichkeit halber
+auch bei den Kafka Optionen angegeben wird.

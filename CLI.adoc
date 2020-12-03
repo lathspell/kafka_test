@@ -1,0 +1,86 @@
+
+== CLI Tools ==
+
+kafka-topics::
+Verwalten von Topics
++
+    kafka-topics --bootstrap-server localhost:9092 --create --topic=test --replication-factor=1 --partitions=1
+    kafka-topics --bootstrap-server localhost:9092 --list
+    kafka-topics --bootstrap-server localhost:9092 --describe --topic=test
+    kafka-topics --bootstrap-server localhost:9092 --delete --topic=test
+
+connect-standalone::
++
+    connect-standalone \
+        config/connect-standalone.properties \
+        config/connect-file-source.properties \
+        config/connect-file-sink.properties
+
+kafka-console-producer::
++
+    kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
+
+kafka-console-consumer::
++
+    kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test
++
+|===
+| --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
+| --property print.key=false    | Anzeige der Keys einer Nachricht
+| --property print.value=true   | Anzeige der Werte einer Nachricht
+| --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer | Auswahl eines alternativen Deserialisierers
+|===
+
+kafka-consumer-groups::
+Verwalten von Consumer Groups (z.B. Resetten von Positionen)
++
+    ./kafka-cli/kafka-consumer-groups-int \
+        --reset-offsets --to-earliest --topic=foo --dry-run
+
+    ./kafka-cli/kafka-consumer-groups-int \
+        --offsets --verbose
+
+    Die Scripte in kafka-cli/ sind nicht im GIT weil sie Zugangsdaten enthalten. Das o.g. Script sieht
+    wie folgt aus:
+
+        kafka-consumer-groups \
+          --command-config=kafka-cli/kafka-int.properties \
+          --bootstrap-server=kafka-int:9093 \
+          --group=foo-cg1
+
+        kafka-cli/kafka-int.properties
+          security.protocol=SSL
+          ssl.truststore.location=config/int-kafka-truststore.p12
+          ssl.truststore.password=xxx
+          ssl.keystore.location=config/int-kafka-keystore.p12
+          ssl.keystore.password=xxx
+
+kafkacat::
+Feines Universaltool zum Lesen und Schreiben von Nachrichten
++
+|===
+| -b            | Bootstrap broker(s)
+| -C / -P       | Consumer / Producer u.a.
+| -t            | Topic
+| -K delimiter  | Trennzeichen für den Message Key
+| -J            | JSON Formatierung
+|===
++
+    kafkacat  -b localhost:9092 -C -t streams-plaintext-output -J
++
+    # Anzeige aller Messages im Topic "foo-test" als JSON
+    kafkacat -b localhost:9192 -C -t foo-test -J
++
+    # Erzeugen einer Message mit Key "64" und Message '{a:41}' auf Queue "foo-test"
+    echo '64:{ "a": 41 }' | kafkacat -P -b localhost:9192 -t foo-test -K:
+    cat beleg1.yml | yq -r - | kafkacat -P -b localhost:9192 -t foo-test
++
+    # Zugriff auf Kafka mit SSL Client-Zertifikat (config/ und kafka-cli/ sind nicht in GIT!)
+    kafkacat -v \
+      -b kafka-int:9093 \
+      -X security.protocol=SSL \
+      -X ssl.ca.location=kafka-cli/kafka-int_root_ca.pem \
+      -X ssl.keystore.location=config/int-kafka-keystore.p12 \
+      -X ssl.keystore.password=xxx \
+      -s avro -r 'https://kafka-schema-registry:9081' \
+      -C -t foo

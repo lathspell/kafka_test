@@ -1,0 +1,111 @@
+= Apache Kafka =
+
+== Übersicht ==
+
+Über Kafka werden *Messages* in verschiedenen *Topics* ausgetauscht.
+
+Die Topics können in verschiedene *Partitions* eingeteilt sein welche zur besseren horizontalen Skalierung
+auf verschiedenen Servern liegen. Partitions können zur Erhöhung der Redundanz repliziert werden, aber
+das ist eine Einstellung, die man beim Erstellen des Topics vornimmt und die danach transparent für
+die Nutzer ist.
+
+*Producer* schreiben Nachrichten in ein Topic.
+
+*Consumer* lesen Nachrichten.
+
+*Consumer Groups* werden benutzt, wenn ein Consumer in mehreren Prozessen gleichzeitig lesen möchte.
+Kafka stellt sicher, dass jede Message nur an genau einen Consumer einer solchen Gruppe geht.
+
+*Messages* bestehen aus einem Key, einem Value und optional aus einer Liste von Headern.
+Die Vorhaltezeit kann pro Topic konfiguriert werden.
+
+*Keys* sind für Kafka Strings mit beliebigem Inhalt oder auch NULL.
+Sie können aber zusammen mit den richtigen Konfigurationsparametern dazu benutzt werden, dass
+Kafka immer nur eine Message pro Key behält, d.h. alte Messages für diesen Key löscht.
+
+*Values* sind aus Sicht von Kafka reine Binär-Blobs, deren Struktur es nicht kennt.
+
+*Header* sind optionale Key-Value-Paare wie z.B. IPs, Hostnamen oder weitere Zeitstempel, die
+zwecks Routing, Processing o.ä. an eine Message gehängt werden können aber nicht zum
+"Business Object" gehören.
+
+Da es keine Vorgaben gibt, wie genau der Inhalt einer Nachricht aussieht, kann man dort auch Binärdaten schicken.
+Es gibt mit [http://avro.apache.org/](Apache Avro) ein Standardformat zur platzsparenden Serialisierung von Objekten
+mittels vordefiniertem Schema.
+
+== Begriffe im Detail ==
+
+topic::
+Ein Topic ist die zentrale Abstraktion von Kafka und beschreibt einen
+Nachrichtenkanal, in den von mehren Parteien geschrieben und gelesen werden
+kann.
++
+Der Server löscht alte Nachrichten nach einer bestimmten Zeit.
+
+message::
+Besteht immer aus einem Key-Value Tupel. Der Key ist eine Id, die benutzt wird,
+um für die Nachricht in eine von mehreren möglichen Partitions zu bestimmen und
+der Value ist der eigentliche Nachrichteninhalt.
++
+Es können mehrere Nachrichten zum selben Key produziert werden. Die Consumer sollen
+dann Daten mit älteren Ids überschreiben.
+
+partition::
+Ein Topic kann in eine oder mehrere Partitionen aufgeteilt werden. Die
+Partitionen können auf mehrere Server aufgeteilt werden, um damit ein
+Redundanz-Konzept ähnlich wie RAID aufzubauen. Beim Erstellen eines Topics kann
+man angeben, in wie vielen Partitions eines Topics eine Nachricht gespeichert
+sein muss, damit sie als angenommen gilt.
++
+Partitionen können auch benutzt werden, falls auf einem einzigen Server nicht
+genügend Platz für alle Nachrichten eines Topics bei der gewünschten
+Vorhaltezeit vorhanden wäre.
++
+Da mancher Producer Nachrichten in nur einer Partition eines Topics speichern
+wollen und andere Producer ihre Nachrichten im selben Topic aber in mehreren
+Partitionen haben wollen, können die Partitionen unterschiedlich groß werden.
+Ein Consumer muss sich daher für jede Partition merken, bis zu welchem ein
+"offset" er dort Nachrichten abgeholt hat.
++
+Nachrichten werden auf Basis eines Hash-Werts über den "Keys" in Partitions verteilt.
+Nur innerhalb einer Partition wird garantiert, dass die konsumierte Reihenfolge dieselbe ist,
+in der die Nachrichten auch im Kafka eintrafen!
+Hat man mehr Partitions als Consumer in einer Consumer-Group so bekommt jeder Consumer
+einen möglichst gleichen Anteil an Partitions.
+Hat man mahr Consumer in einer Consumer-Group als man Partitions existieren, so bleiben einige
+Consumer idle.
+
+producer::
+Schreibt in ein Topic. Genauer gesagt "appends a record", d.h. keine
+nachträgliche Veränderung möglich.  Der Producer kennt die Consumer nicht und
+hat keinen Einfluss darauf, wer die Nachrichten letztendlich liest.
+
+consumer::
+Liest aus einem Topic. Üblicherweise nur neue Nachrichten, auf Wunsch aber auch
+alle noch vorhandenen älteren.  Die gelesenen Nachrichten verbleiben auf dem
+Kafka Server, andere Consumer können sie also auch noch abholen.
+
+consumer group::
+Mehrere Consumer können zu einer Gruppe zusammengefasst werden. Vom Kafka
+Server wird sichergestellt, dass jede Nachricht nur zu genau einem Consumer
+der Gruppe gelangt.
+
+== Einstellungen ==
+
+cleanup.policy::
+Wird ein Topic mit der Option "cleanup.policy=compact" erstellt so wird für
+jeden Key innerhalb eines Topics nur der neueste Eintrag behalten. Andernfalls
+werden auch ältere Versionen vorgehalten damit ein Client z.B. die ganze
+Historie des Objekts nachverfolgen kann.
++
+Standard mäßig gilt allerdings eine Retention Policy, die alle Daten nach 7 Tagen
+löscht - also auch, wenn seit dem keine weitere Aktualisierung für einen Key
+kam.
+
+max.in.flight.requests.per.connection::
+Sollte man im Producer auf "1" stellen, wenn man verhindern will, dass durch Paketverluste und Retries Nachrichten
+eines Produces doch mal in der falschen Reihenfolge beim Kafka Server ankommen.
+
+== Links ==
+
+* https://www.rheindata.com/apache-kafka-avro-und-schema-registry - Grundlagen
