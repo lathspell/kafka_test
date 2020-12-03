@@ -17,12 +17,26 @@ connect-standalone::
         config/connect-file-sink.properties
 
 kafka-console-producer::
+Nimmt Nachrichten von stdin entgegen und schreibt sie auf ein Topic.
+* Achtung: Versteht kein Avro, die Nachrichteninhalte werden also Binär angezeigt
 +
     kafka-console-producer --broker-list=localhost:9092 --topic=test < DATA
 
 kafka-console-consumer::
+Zeigt die neuesten oder auf Wunsch alle Nachrichten auf der Konsole.
+* Achtung: Versteht kein Avro, die Nachrichteninhalte werden also Binär angezeigt
+* Achtung: Bleibt stillschweigend hängen wenn man eine Consumer-Group angibt, die bereits von einem anderen aktiven Client benutzt wird.
 +
     kafka-console-consumer --bootstrap-server=localhost:9092 --topic=test
++
+    kafka-console-consumer \
+        --consumer.config=kafka-cli/kafka-dev.properties \
+        --bootstrap-server=kafka-dev:9093,kafka-dev:9094 \
+        --topic=mytopic-v2 \
+        --group=mytopic-cg1 \
+        --from-beginning \
+        --property print.timestamp=true \
+        --property print.key=true
 +
 |===
 | --from-beginning              | zur Anzeige aller gespeicherter Nachrichten
@@ -57,6 +71,7 @@ Verwalten von Consumer Groups (z.B. Resetten von Positionen)
 
 kafkacat::
 Feines Universaltool zum Lesen und Schreiben von Nachrichten
+* Achtung: Avro wird nur im Consumer unterstützt, nicht für den Producer
 +
 |===
 | -b            | Bootstrap broker(s)
@@ -84,3 +99,35 @@ Feines Universaltool zum Lesen und Schreiben von Nachrichten
       -X ssl.keystore.password=xxx \
       -s avro -r 'https://kafka-schema-registry:9081' \
       -C -t foo
++
+    # Mit Konfigurationsdatei
+    cat kafkacat-dev.properties
+        bootstrap.servers=kafka-dev:9093
+        security.protocol=SSL
+        ssl.ca.location=kafka-dev_root_ca.pem
+        ssl.keystore.location=kafka-dev_keystore.p12
+        ssl.keystore.password=secret
++
+    # Mit Konfigurationsdatei
+    kafkacat -F kafkacat-dev.properties -P -t mytopic
+        <ein Wert pro Zeile>
+
+
+avro-tool::
+Werkzeug zum validieren und konvertieren von Avro Nachrichten. Hat keinen direkten Bezug zu Kafka!
++
+    # Wandelt eine Avro Definition in das kanonische Format um (um zu sehen wo sich zwei Dateien signifikant unterscheiden)
+    avro-tools canonical Foo.avsc Foo-canonical.asvc
+
+kafka-avro-console-producer::
+Kommt aus der Confluent Kafka Distribution und soll angeblich Avro verstehen können.
+Konnte ihn aber nicht zum Laufen bringen.
++
+    wget http://packages.confluent.io/archive/1.0/confluent-1.0.1-2.10.4.zip
+    unzip confluent-1.0.1-2.10.4.zip
+    cd confluent-1.0.1
+    ./bin/kafka-avro-console-producer
+        --broker-list kafka-dev:9093
+        --topic mytopic
+        --property schema.registry.url=https://user:pass@kafka-dev-schema-registry/
+        --property value.schema=https://user:pass@kafka-dev-schema-registry/schemas/ids/83
